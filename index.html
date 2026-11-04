@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="把每一个 AI 名词，讲成你生活里见过的东西：模型、Token、上下文、Agent、Harness、Skill、MCP、Plugin、Hook……179 个词，11 层。">
+<title>AI 零件大全 · 把每个 AI 名词讲成你见过的东西</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="progress" aria-hidden="true"><i id="progressBar"></i></div>
+<canvas id="bg" aria-hidden="true"></canvas>
+
+<nav class="rail" id="rail" aria-label="章节导航"></nav>
+
+<header class="hero" id="top">
+  <p class="kicker"><span class="dot"></span><span data-total>179</span> 个词 · <span data-layers>11</span> 层 · 一次讲透</p>
+  <h1 id="heroTitle">AI 零件大全</h1>
+  <p class="lede">
+    模型是脑子，上下文是工作台，工具是手脚。<br>
+    把每一个 AI 名词，讲成你生活里见过的东西。
+  </p>
+  <div class="hero-foot">
+    <a class="cta" href="#creed">开始拆解<span class="arrow" aria-hidden="true"></span></a>
+    <span class="scroll-hint">向下滚动 · 约 12 分钟</span>
+  </div>
+</header>
+
+<noscript>
+  <p style="max-width:1180px;margin:0 auto;padding:24px 28px;color:#A2A2AB;font-size:14px">
+    这个页面的内容由 JavaScript 渲染。请开启 JS，或直接阅读同目录下的
+    <a href="AI零件大全.md" style="border-bottom:1px solid #3A3A42">AI零件大全.md</a>。
+  </p>
+</noscript>
+
+<main>
+
+  <section class="creed" id="creed">
+    <p class="sec-label">一句话记住</p>
+    <div class="creed-list">
+      <p class="creed-line"><b>模型</b>是脑子<span>很聪明，但失忆、没手、也看不见外面。</span></p>
+      <p class="creed-line"><b>上下文</b>是工作台<span>你每次都得把材料摊在它眼前，它才看得见。</span></p>
+      <p class="creed-line"><b>工具</b>是手脚<span>能搜索、能算数、能改文件，它才算真的能干活。</span></p>
+      <p class="creed-line"><b>Agent</b> 是会干活的人<span>自己安排先做哪步、后做哪步，做完还会检查。</span></p>
+      <p class="creed-line"><b>Harness</b> 是办公室<span>拼材料、管权限、留记录、按暂停——让它安全地跑。</span></p>
+    </div>
+    <p class="creed-tail">剩下那些词——Skill、MCP、Plugin、Hook——全是给这套系统<b>加装的标准接口</b>。</p>
+  </section>
+
+  <section class="map" id="map">
+    <div class="sec-head">
+      <p class="sec-label">全景</p>
+      <h2>拆开看，AI 只有这几层</h2>
+      <p class="sec-desc">从下往上：越往下越像“大脑”，越往上越像“工具”。点任意一层，跳到它的全部零件。</p>
+    </div>
+    <div class="stack" id="stack"></div>
+    <div class="stack-note">
+      <span class="n-dot"></span>
+      横向还有四层支撑：成本、数据与评测、安全治理、产品生态——它们不属于某一层，而是贯穿所有层。
+    </div>
+  </section>
+
+  <section class="x3d" id="x3d">
+    <div class="sec-head">
+      <p class="sec-label">拆开</p>
+      <h2>拆开一台 AI</h2>
+      <p class="sec-desc">主干七层摞在一起，就是这台机器。拖动旋转，拉动滑块把它拆开——每层都标着它装了什么，点标签直接跳到那一章。</p>
+    </div>
+    <div class="x3d-canvas" id="xCanvas">
+      <div class="x3d-stage" id="xStage">
+        <div class="x3d-scene" id="xScene"></div>
+        <svg class="x3d-links" id="xLinks" aria-hidden="true">
+          <defs>
+            <marker id="xArrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="#8f8f99"></path>
+            </marker>
+          </defs>
+        </svg>
+      </div>
+      <div class="x3d-labels" id="xLabels"></div>
+    </div>
+    <div class="x3d-bar">
+      <button class="x3d-btn" id="xToggle" type="button">拆解</button>
+      <input class="x3d-range" id="xRange" type="range" min="0" max="100" value="0" aria-label="拆解程度">
+      <span class="x3d-hint">拖动旋转 · 点标签跳到那一章</span>
+    </div>
+  </section>
+
+  <div id="chapters"></div>
+
+
+
+  <section class="journey" id="journey">
+    <div class="sec-head">
+      <p class="sec-label">装回去</p>
+      <h2>一次请求的完整旅程</h2>
+      <p class="sec-desc">前面十层是零件，这里是装配图。你按下回车之后的三秒里，它们按这个顺序上场。</p>
+    </div>
+    <div class="j-wrap">
+      <ol class="j-list" id="jList"></ol>
+      <aside class="j-side">
+        <p class="j-side-t">这三秒花在哪</p>
+        <div class="j-bars" id="jBars"></div>
+        <p class="j-side-n">示意值。真实耗时要看模型、上下文长度和网络。</p>
+      </aside>
+    </div>
+  </section>
+
+  <section class="myths" id="myths">
+    <div class="sec-head">
+      <p class="sec-label">排雷</p>
+      <h2>十二个最常见的误解</h2>
+      <p class="sec-desc">这些话说出来很顺，但基本都是错的。点开看为什么。</p>
+    </div>
+    <div class="myth-list" id="mythList"></div>
+  </section>
+
+  <section class="index-sec" id="index">
+    <div class="sec-head">
+      <p class="sec-label">索引</p>
+      <h2><span data-total>179</span> 个词，随便查</h2>
+      <p class="sec-desc">输入中文或英文，点结果跳到它所在的位置。</p>
+    </div>
+    <div class="search-wrap">
+      <input id="termSearch" type="search" placeholder="搜一个词，比如：上下文 / MCP / 缓存" autocomplete="off" spellcheck="false">
+      <span class="search-count" id="searchCount"></span>
+    </div>
+    <div class="index-grid" id="indexGrid"></div>
+    <p class="empty" id="emptyHint" hidden>没有找到。换个说法试试。</p>
+  </section>
+
+</main>
+
+<footer class="site-foot">
+  <div class="foot-inner">
+    <p class="foot-mark">AI 零件大全</p>
+    <p class="foot-note">配套 Markdown 全文：<a href="AI零件大全.md">AI零件大全.md</a></p>
+    <p class="foot-note dim"><span data-total>179</span> 个词 · 只为讲清楚，不为讲全</p>
+  </div>
+</footer>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

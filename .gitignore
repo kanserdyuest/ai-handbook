@@ -1,0 +1,18 @@
+# 依赖 / 缓存
+__pycache__/
+*.py[cod]
+
+# 截图与调试产物
+shot_*.png
+m_*.png
+p_*.png
+_v_*.png
+_*.png
+.cdp-*/
+.chrome*/
+.tmp*/
+
+# 系统
+.DS_Store
+Thumbs.db
+*.log
