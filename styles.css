@@ -854,3 +854,9 @@ html{scrollbar-gutter:stable}
 .return-results{bottom:88px}
 @media(max-width:640px){#backToTop{right:16px;bottom:16px}.return-results{bottom:80px}}
 @media(prefers-reduced-motion:reduce){#readerDialog,#readerDialog::backdrop,#backToTop,.top-label{transition:none;transform:none}}
+
+.layer-detail{overflow:hidden}
+#resetLayer{display:block;margin-top:18px;padding:8px 14px;border:1px solid #625438;border-radius:8px;color:var(--accent);font-size:14px}
+#resetLayer[hidden]{display:none}
+#resetLayer:hover{background:#29251b}
+.x3d-lab[aria-pressed="true"] .t{color:var(--lc)}

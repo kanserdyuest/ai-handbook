@@ -201,7 +201,17 @@ async function main() {
   await evalJs("document.getElementById('closeReader').click()");
 
   await evalJs("document.querySelector('.x3d-lab[href]').click()");
+  await sleep(380);
   ok('三维选层显示解释与入口', await evalJs("document.querySelector('#layerDetail p').textContent.length>10 && document.querySelector('#layerDetail a').getAttribute('href').startsWith('#ch-')"));
+  await evalJs("document.getElementById('resetLayer').click()");
+  await sleep(380);
+  ok('重置选层恢复提示与图层', await evalJs("document.getElementById('layerDetailContent').textContent==='选择图中的层级，查看它的作用与代表词。' && document.getElementById('resetLayer').hidden && [...document.querySelectorAll('.plate')].every(p=>p.style.opacity==='')"));
+  await evalJs("document.querySelectorAll('.x3d-lab[href]')[0].click();document.querySelectorAll('.x3d-lab[href]')[1].click()");
+  await sleep(380);
+  ok('快速切换以最后选层为准', await evalJs("document.querySelector('#layerDetail strong').textContent.includes('Harness')"));
+  await evalJs("document.querySelectorAll('.x3d-lab[href]')[1].click()");
+  await sleep(380);
+  ok('重复点击选层可复原', await evalJs("document.getElementById('resetLayer').hidden && !document.querySelector('#layerDetail strong')"));
   await evalJs("document.querySelector('#ch-agent .demo-controls button').click()");
   const pausedDot = await evalJs("document.getElementById('agentDot').getAttribute('cx')");
   await sleep(400);

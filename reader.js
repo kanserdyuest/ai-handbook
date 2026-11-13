@@ -71,8 +71,62 @@
   document.addEventListener('keydown',function(e){if(e.key==='/' && !dialog.open && !/INPUT|TEXTAREA|SELECT/.test(e.target.tagName) && !e.target.isContentEditable){e.preventDefault();open('search');}});
   var observer=new IntersectionObserver(function(entries){entries.forEach(function(e){if(e.isIntersecting){var l=D.layers.find(function(l){return 'ch-'+l.id===e.target.id;});document.getElementById('currentChapter').textContent=l.no+' / '+l.title;}});},{rootMargin:'-15% 0px -70% 0px'});
   document.querySelectorAll('.chapter').forEach(function(el){observer.observe(el);});
-  document.querySelectorAll('.x3d-lab[href]').forEach(function(label){label.setAttribute('role','button');label.setAttribute('aria-controls','layerDetail');label.addEventListener('keydown',function(e){if(e.key===' '){e.preventDefault();label.click();}});label.addEventListener('click',function(e){e.preventDefault();var id=label.getAttribute('href').slice(1),l=D.layers.find(function(l){return 'ch-'+l.id===id;});var box=document.getElementById('layerDetail');box.replaceChildren();var h=document.createElement('strong'),p=document.createElement('p'),a=document.createElement('a');h.textContent=l.title+' · '+l.sub;p.textContent=l.intro;a.href='#'+id;a.textContent='阅读本章：'+l.terms.filter(function(t){return t.core;}).slice(0,3).map(function(t){return t.cn;}).join(' / ')+' →';box.append(h,p,a);document.querySelectorAll('.plate').forEach(function(p,i){p.style.opacity=i===Number(label.dataset.i)?'1':'.3';});box.scrollIntoView({block:'nearest',behavior:'smooth'});});});
-  document.getElementById('xToggle').addEventListener('click',function(){document.querySelectorAll('.plate').forEach(function(p){p.style.opacity='';});});
+  var layerBox = document.getElementById('layerDetail');
+  var layerContent = document.getElementById('layerDetailContent');
+  var resetLayer = document.getElementById('resetLayer');
+  var initialLayerText = layerContent.textContent, selectedLabel = null;
+  var layerTimer, layerAnimations = [];
+  function changeLayerContent(render) {
+    clearTimeout(layerTimer);
+    layerAnimations.forEach(function(animation){animation.cancel();});
+    layerAnimations = [];
+    if (reduceMotion) { render(); return; }
+    layerAnimations.push(layerContent.animate([{opacity:1},{opacity:0,transform:'translateY(-4px)'}],{duration:100,fill:'forwards'}));
+    layerTimer = setTimeout(function(){
+      var before = layerBox.getBoundingClientRect().height;
+      render();
+      var after = layerBox.getBoundingClientRect().height;
+      layerAnimations.forEach(function(animation){animation.cancel();});
+      layerAnimations = [
+        layerBox.animate([{height:before+'px'},{height:after+'px'}],{duration:240,easing:'cubic-bezier(.2,.7,.2,1)'}),
+        layerContent.animate([{opacity:0,transform:'translateY(5px)'},{opacity:1,transform:'translateY(0)'}],{duration:220,easing:'ease-out'})
+      ];
+    },100);
+  }
+  function resetLayerSelection() {
+    var oldLabel = selectedLabel;
+    selectedLabel = null;
+    document.querySelectorAll('.x3d-lab[href]').forEach(function(label){label.setAttribute('aria-pressed','false');});
+    document.querySelectorAll('.plate').forEach(function(plate){plate.style.opacity='';});
+    if (document.activeElement === resetLayer && oldLabel) oldLabel.focus({preventScroll:true});
+    changeLayerContent(function(){layerContent.textContent=initialLayerText;resetLayer.hidden=true;});
+  }
+  resetLayer.onclick = resetLayerSelection;
+  document.querySelectorAll('.x3d-lab[href]').forEach(function(label){
+    label.setAttribute('role','button');
+    label.setAttribute('aria-controls','layerDetail');
+    label.setAttribute('aria-pressed','false');
+    label.addEventListener('keydown',function(e){if(e.key===' '){e.preventDefault();label.click();}});
+    label.addEventListener('click',function(e){
+      e.preventDefault();
+      if (selectedLabel === label) { resetLayerSelection(); return; }
+      selectedLabel = label;
+      var id=label.getAttribute('href').slice(1);
+      var layer=D.layers.find(function(l){return 'ch-'+l.id===id;});
+      document.querySelectorAll('.x3d-lab[href]').forEach(function(item){item.setAttribute('aria-pressed',String(item===label));});
+      document.querySelectorAll('.plate').forEach(function(plate,i){plate.style.opacity=i===Number(label.dataset.i)?'1':'.3';});
+      changeLayerContent(function(){
+        var title=document.createElement('strong'),description=document.createElement('p'),link=document.createElement('a');
+        title.textContent=layer.title+' · '+layer.sub;
+        description.textContent=layer.intro;
+        link.href='#'+id;
+        link.textContent='阅读本章：'+layer.terms.filter(function(t){return t.core;}).slice(0,3).map(function(t){return t.cn;}).join(' / ')+' →';
+        layerContent.replaceChildren(title,description,link);
+        resetLayer.hidden=false;
+      });
+    });
+  });
+  document.getElementById('xToggle').addEventListener('click',resetLayerSelection);
   document.getElementById('indexGrid').addEventListener('click',function(e){var b=e.target.closest('[data-go]');if(b){input.value=document.getElementById('termSearch').value;history.replaceState(null,'','#'+b.dataset.go);back.hidden=false;}});
   function restore(){var id=decodeURIComponent(location.hash.slice(1));if(id.startsWith('t-'))goWithoutHistory(id);}
   function goWithoutHistory(id){var el=document.getElementById(id);if(!el)return;var c=el.closest('.chapter');if(el.classList.contains('extra')&&!c.classList.contains('open'))c.querySelector('.more').click();el.classList.add('in');el.scrollIntoView({block:'center',behavior:'instant'});}
