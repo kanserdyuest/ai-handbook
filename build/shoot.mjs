@@ -4,6 +4,7 @@
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import { SCREENSHOTS, BROWSERS } from './cache-paths.mjs';
 
 const CHROME = process.env.CHROME_PATH || (
   process.platform === 'win32'
@@ -13,7 +14,7 @@ const CHROME = process.env.CHROME_PATH || (
       : '/usr/bin/google-chrome'
 );
 const URL_ = process.argv[2];
-const OUT = process.argv[3] || '_shot';
+const OUT = path.join(SCREENSHOTS, path.basename(process.argv[3] || '_shot'));
 const CHUNK = parseInt(process.argv[4] || '4000', 10);
 const PORT = 9333 + Math.floor(Math.random() * 200);
 const WIDTH = parseInt(process.argv[5] || '1440', 10);
@@ -24,7 +25,7 @@ const proc = spawn(CHROME, [
   '--headless=new', '--disable-gpu', '--hide-scrollbars', '--no-first-run',
   '--disable-extensions', '--mute-audio',
   `--remote-debugging-port=${PORT}`,
-  `--user-data-dir=${path.resolve('.cdp-' + PORT)}`,
+  `--user-data-dir=${path.join(BROWSERS, 'cdp-' + PORT)}`,
   `--window-size=${WIDTH},1000`,
   'about:blank'
 ], { stdio: 'ignore' });

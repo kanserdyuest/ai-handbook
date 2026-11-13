@@ -16,3 +16,6 @@ _*.png
 .DS_Store
 Thumbs.db
 *.log
+
+# Codex 本地截图、浏览器配置和临时缓存
+.codex-cache/

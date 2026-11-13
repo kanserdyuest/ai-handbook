@@ -1,29 +1,20 @@
 # -*- coding: utf-8 -*-
-"""由 content_*.py 生成 ai-parts.md 与 web/data.js"""
+"""由 content_*.py 生成 AI零件大全.md 与 data.js。"""
 import json
 import io
 import os
 import sys
 
+sys.dont_write_bytecode = True
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import content_a
 import content_b
 import content_c
+from content_journey import JOURNEY
 
 LAYERS = content_a.LAYERS + content_b.LAYERS + content_c.LAYERS
 MYTHS = content_c.MYTHS
-
-JOURNEY = [
-    ("0.00s", "你按下回车", "一句话进入系统。这时还没到模型，也还没花钱。", "产品层 · 输入框"),
-    ("0.01s", "切成 token", "一句话被切成 23 个碎片。中文大约 1 个字 = 1~2 个 token。", "02 · Token"),
-    ("0.02s", "拼上下文", "系统提示、历史对话、检索到的资料、你的问题，打包成一段长文本。", "03 · 上下文 · 06 · 上下文装配"),
-    ("0.03s", "查缓存", "前缀一样就复用，输入部分直接打折。命中率决定成本。", "08 · 提示词缓存"),
-    ("0.45s", "首字到达", "模型吐出第一个字。这 0.45 秒就是 TTFT，也是你等待的主要来源。", "01 · 推理 · 06 · 流式"),
-    ("1.90s", "流式吐字", "边生成边显示，你看到字一个个蹦出来。", "06 · 流式输出"),
-    ("2.30s", "决定调工具", "模型输出的不是答案，而是一句“调用 get_weather(上海)”。", "05 · 函数调用"),
-    ("2.90s", "结果回填", "工具跑完，结果写回上下文，模型接着往下想。", "05 · 观察"),
-    ("3.60s", "检查 + 渲染", "过一遍护栏，确认没问题，才出现在你屏幕上。", "10 · 护栏"),
-]
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TOTAL = sum(len(l["terms"]) for l in LAYERS)
@@ -41,11 +32,11 @@ HEAD = """# AI 零件大全
 
 **模型是脑子，上下文是工作台，工具是手脚，Agent 是会干活的人，Harness 是办公室。**
 
-- 脑子（模型）很聪明，但**失忆、没手、看不见外面**。
+- 脑子（模型）能处理输入，但**不会自动记住上次对话，也不会自行执行外部操作**。
 - 所以你每次都得把材料摊在它眼前的**工作台**（上下文）上。
 - 想让它办事，得给它**手脚**（工具）；会自己安排先做哪步、后做哪步的，才叫 **Agent**。
 - 而让它安全地跑起来的那一整套东西——拼材料、管权限、留记录、按暂停——叫 **Harness**。
-- 至于 Skill / MCP / Plugin / Hook，全是给这套系统**加装的标准接口**。
+- 至于 Skill / MCP / Plugin / Hook，是给这套系统**补充做法、连接能力、打包扩展和设置触发逻辑**的不同机制。
 
 把这句话记住，下面所有词都只是它的零件名。
 
@@ -114,13 +105,17 @@ def render_md():
         w("\n")
     # journey
     w("\n---\n\n## 把零件装回去：一次请求的完整旅程\n\n")
-    w("前面十层是零件，这里是装配图。你按下回车之后的三秒里，它们按这个顺序上场：\n\n")
-    for i, (tt, h, p, tag) in enumerate(JOURNEY, 1):
+    w(JOURNEY["intro"] + "\n\n")
+    for i, (tt, h, p, tag) in enumerate(JOURNEY["steps"], 1):
         w("%d. **%s｜%s** —— %s（%s）\n" % (i, tt, h, p, tag))
-    w("\n**三个值得记住的结论**：\n\n")
-    w("- 你等的每一秒，大多花在**第 5 步之前**：上下文越长，越慢。\n")
-    w("- 你的钱，大多花在**第 3 步和第 6 步**：输入按 token 算，输出更贵。\n")
-    w("- 所谓“Agent”，就是把**第 7、8 步重复很多遍**，直到事情办完。\n\n")
+    w("\n**示例耗时**：\n\n")
+    for label, seconds, _ in JOURNEY["bars"]:
+        w("- %s：%.2f 秒\n" % (label, seconds))
+    w("\n" + JOURNEY["bar_note"] + "\n\n")
+    w("**不同请求怎么走**：\n\n")
+    for note in JOURNEY["notes"]:
+        w("- " + note + "\n")
+    w("\n")
     # myths
     w("\n---\n\n## 十二个最常见的误解\n\n")
     for i, (m, a) in enumerate(MYTHS, 1):
@@ -145,7 +140,7 @@ def render_md():
 | 它为什么老是要我点同意？ | 人在环、审批、权限 |
 | 它为什么有时候特别慢？ | TTFT、上下文长度、并发、限流 |
 | 它为什么按次收费？ | Token 计费、输入/输出价格、缓存 |
-| 这些扩展到底啥区别？ | Skill 说明书 / MCP 接口 / Plugin 代码包 / Hook 触发器 |
+| 这些扩展到底啥区别？ | Skill 任务说明与资源 / MCP 连接协议 / Plugin 扩展包 / Hook 触发逻辑 |
 | 是谁让它能跑起来的？ | Harness、运行时、事件循环 |
 """)
     return out.getvalue()
@@ -165,6 +160,7 @@ def render_js():
             } for l in LAYERS
         ],
         "myths": [{"m": m, "a": a} for m, a in MYTHS],
+        "journey": JOURNEY,
         "total": TOTAL,
     }
     return "window.AI_DATA = " + json.dumps(payload, ensure_ascii=False, indent=1) + ";\n"

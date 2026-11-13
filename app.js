@@ -226,8 +226,8 @@
   function demoExt() {
     var items = [
       ['HOW', 'Skill', '一份说明书：遇到这类活，就按这几步做。'],
-      ['PORT', 'MCP', '一个插座标准：谁都能插上来提供工具。'],
-      ['CODE', 'Plugin', '一包代码：直接给宿主程序加功能。'],
+      ['PORT', 'MCP', '一种连接协议：接入兼容并获授权的工具和数据。'],
+      ['PACK', 'Plugin', '一个扩展包：可包含代码、技能和其他资源。'],
       ['WHEN', 'Hook', '一个触发器：到点了就自动干某件事。']
     ];
     return '' +
@@ -510,17 +510,13 @@
     var list = $('#jList');
     if (!list) return;
 
-    var STEPS = [
-      ['0.00s', '你按下回车', '一句话进入系统。这时还没到模型，也还没花钱。', '产品层 · 输入框'],
-      ['0.01s', '切成 token', '一句话被切成 23 个碎片。中文大约 1 个字 = 1~2 个 token。', '02 · Token'],
-      ['0.02s', '拼上下文', '系统提示、历史对话、检索到的资料、你的问题，打包成一段长文本。', '03 · 上下文 · 06 · 上下文装配'],
-      ['0.03s', '查缓存', '前缀一样就复用，输入部分直接打折。命中率决定成本。', '08 · 提示词缓存'],
-      ['0.45s', '首字到达', '模型吐出第一个字。这 0.45 秒就是 TTFT，也是你等待的主要来源。', '01 · 推理 · 06 · 流式'],
-      ['1.90s', '流式吐字', '边生成边显示，你看到字一个个蹦出来。', '06 · 流式输出'],
-      ['2.30s', '决定调工具', '模型输出的不是答案，而是一句“调用 get_weather(上海)”。', '05 · 函数调用'],
-      ['2.90s', '结果回填', '工具跑完，结果写回上下文，模型接着往下想。', '05 · 观察'],
-      ['3.60s', '检查 + 渲染', '过一遍护栏，确认没问题，才出现在你屏幕上。', '10 · 护栏']
-    ];
+    var journey = D.journey;
+    var STEPS = journey.steps;
+    $('#journeyIntro').textContent = journey.intro;
+    $('#journeyBarNote').textContent = journey.bar_note;
+    $('#journeyNotes').innerHTML = journey.notes.map(function (note) {
+      return '<li>' + note + '</li>';
+    }).join('');
 
     list.innerHTML = STEPS.map(function (s, i) {
       return '<li class="j-step" data-i="' + i + '">' +
@@ -543,7 +539,9 @@
       list.style.setProperty('--fill', (dot.offsetTop + dot.offsetHeight / 2 - 12) + 'px');
     }
 
+    var paused = reduce;
     function tick() {
+      if (paused) return;
       if (idx >= steps.length - 1) {
         timer = window.setTimeout(function () { idx = -1; tick(); }, 2800);
         return;
@@ -556,10 +554,21 @@
       el.addEventListener('click', function () {
         window.clearTimeout(timer);
         setStep(+el.getAttribute('data-i'));
-        timer = window.setTimeout(tick, 3200);
+        paused = true;
+        play.textContent = '播放';
       });
     });
 
+    var controls = document.createElement('div');
+    controls.className = 'demo-controls';
+    controls.innerHTML = '<button type="button">' + (paused ? '播放' : '暂停') + '</button><button type="button">下一步</button><button type="button">重播</button>';
+    list.parentNode.parentNode.insertBefore(controls, list.parentNode);
+    var play = controls.children[0];
+    play.onclick = function () { paused = !paused; clearTimeout(timer); play.textContent = paused ? '播放' : '暂停'; if (!paused) tick(); };
+    controls.children[1].onclick = function () { paused = true; clearTimeout(timer); play.textContent = '播放'; setStep((idx + 1) % steps.length); };
+    controls.children[2].onclick = function () { clearTimeout(timer); idx = -1; paused = false; play.textContent = '暂停'; tick(); };
+    steps.forEach(function (el) { el.tabIndex = 0; el.setAttribute('role', 'button'); el.onkeydown = function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.click(); } }; });
+    if (reduce) setStep(0);
     var started = false;
     var io2 = new IntersectionObserver(function (es) {
       es.forEach(function (e) {
@@ -576,12 +585,10 @@
     };
 
     if (bars) {
-      var DATA = [
-        ['首字延迟 TTFT', '0.45s', 31, 1],
-        ['生成 38 个 token', '1.45s', 100, 1],
-        ['工具调用', '0.60s', 41, 0],
-        ['拼装与检查', '0.10s', 7, 0]
-      ];
+      var maxSeconds = Math.max.apply(null, journey.bars.map(function (bar) { return bar[1]; }));
+      var DATA = journey.bars.map(function (bar) {
+        return [bar[0], bar[1].toFixed(2) + 's', Math.round(bar[1] / maxSeconds * 100), bar[2]];
+      });
       bars.innerHTML = DATA.map(function (d) {
         return '<div class="j-bar' + (d[3] ? ' a' : '') + '">' +
           '<div class="lb"><span>' + d[0] + '</span><span>' + d[1] + '</span></div>' +
@@ -794,11 +801,28 @@
       ['03 观察', '返回：26℃，多云，湿度 71%。'],
       ['04 再规划', '信息够了，不用再查。']
     ];
-    var last = -1, t0 = performance.now();
+    var last = -1, t0 = performance.now(), agentPaused = false, pauseAt = 0;
+    var agentControls = document.createElement('div');
+    agentControls.className = 'demo-controls';
+    agentControls.innerHTML = '<button type="button">暂停</button><button type="button">重播</button>';
+    if (!reduce) log.parentNode.parentNode.appendChild(agentControls);
+    agentControls.children[0].onclick = function () {
+      agentPaused = !agentPaused;
+      this.textContent = agentPaused ? '继续' : '暂停';
+      if (agentPaused) pauseAt = performance.now();
+      else { t0 += performance.now() - pauseAt; requestAnimationFrame(frame); }
+    };
+    agentControls.children[1].onclick = function () {
+      var wasPaused = agentPaused;
+      agentPaused = false; last = -1; t0 = performance.now(); log.innerHTML = '';
+      agentControls.children[0].textContent = '暂停';
+      if (wasPaused) requestAnimationFrame(frame);
+    };
 
     function smooth(x) { return x * x * (3 - 2 * x); }
 
     function frame(now) {
+      if (agentPaused) return;
       var p = ((now - t0) / PHASE) % 4;
       var phase = Math.floor(p), f = p - phase;
       var a0 = -Math.PI / 2 + phase * (Math.PI / 2);

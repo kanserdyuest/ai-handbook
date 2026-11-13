@@ -3,11 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="把每一个 AI 名词，讲成你生活里见过的东西：模型、Token、上下文、Agent、Harness、Skill、MCP、Plugin、Hook……179 个词，11 层。">
+<meta name="description" content="把每一个 AI 名词，讲成你生活里见过的东西：模型、Token、上下文、Agent、Harness、Skill、MCP、Plugin、Hook……186 个词，11 层。">
 <title>AI 零件大全 · 把每个 AI 名词讲成你见过的东西</title>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+<header class="reader-bar"><a href="#top" class="reader-brand">AI 零件大全</a><span id="currentChapter">交互手册</span><button id="openContents" type="button">目录</button><button id="openSearch" type="button">搜索 <kbd>/</kbd></button></header>
+<dialog id="readerDialog" aria-labelledby="readerDialogTitle"><div class="reader-dialog-head"><h2 id="readerDialogTitle">查一个词</h2><button id="closeReader" type="button" aria-label="关闭">关闭 ×</button></div><div id="readerContents"></div><div id="readerSearch"><label for="quickSearch">输入中文、英文或关键词</label><input id="quickSearch" type="search" placeholder="例如：上下文、MCP、缓存" autocomplete="off"><p id="quickCount" role="status"></p><div id="quickResults"></div></div></dialog>
+<button id="backToTop" type="button" aria-label="返回顶部" aria-hidden="true" tabindex="-1"><span aria-hidden="true">↑</span><span class="top-label">返回顶部</span></button>
+<button id="backToResults" class="return-results" hidden type="button">← 返回搜索结果</button>
 
 <div class="progress" aria-hidden="true"><i id="progressBar"></i></div>
 <canvas id="bg" aria-hidden="true"></canvas>
@@ -15,16 +19,17 @@
 <nav class="rail" id="rail" aria-label="章节导航"></nav>
 
 <header class="hero" id="top">
-  <p class="kicker"><span class="dot"></span><span data-total>179</span> 个词 · <span data-layers>11</span> 层 · 一次讲透</p>
+  <p class="kicker"><span class="dot"></span><span data-total>186</span> 个词 · <span data-layers>11</span> 层 · 一次讲透</p>
   <h1 id="heroTitle">AI 零件大全</h1>
   <p class="lede">
     模型是脑子，上下文是工作台，工具是手脚。<br>
     把每一个 AI 名词，讲成你生活里见过的东西。
   </p>
   <div class="hero-foot">
-    <a class="cta" href="#creed">开始拆解<span class="arrow" aria-hidden="true"></span></a>
-    <span class="scroll-hint">向下滚动 · 约 12 分钟</span>
+    <a class="cta" href="#ch-model">从头阅读<span class="arrow" aria-hidden="true"></span></a>
+    <button class="cta" id="heroSearch" type="button">查一个词 ↗</button><a class="scroll-hint" href="#x3d">探索 AI 的组成 ↓</a>
   </div>
+  <a class="hero-machine" href="#x3d" aria-label="探索 AI 拆解图"><span>一套系统，如何协作</span><i>扩展 · Skill / MCP</i><i>执行 · Agent / Harness</i><i>材料 · Context / RAG</i><i>核心 · Model / Token</i><b>从零件看懂整体 ↗</b></a>
 </header>
 
 <noscript>
@@ -39,13 +44,13 @@
   <section class="creed" id="creed">
     <p class="sec-label">一句话记住</p>
     <div class="creed-list">
-      <p class="creed-line"><b>模型</b>是脑子<span>很聪明，但失忆、没手、也看不见外面。</span></p>
+      <p class="creed-line"><b>模型</b>是脑子<span>能处理输入，但不会自动记住上次对话或自行操作外部系统。</span></p>
       <p class="creed-line"><b>上下文</b>是工作台<span>你每次都得把材料摊在它眼前，它才看得见。</span></p>
       <p class="creed-line"><b>工具</b>是手脚<span>能搜索、能算数、能改文件，它才算真的能干活。</span></p>
       <p class="creed-line"><b>Agent</b> 是会干活的人<span>自己安排先做哪步、后做哪步，做完还会检查。</span></p>
       <p class="creed-line"><b>Harness</b> 是办公室<span>拼材料、管权限、留记录、按暂停——让它安全地跑。</span></p>
     </div>
-    <p class="creed-tail">剩下那些词——Skill、MCP、Plugin、Hook——全是给这套系统<b>加装的标准接口</b>。</p>
+    <p class="creed-tail">剩下那些词——Skill、MCP、Plugin、Hook——分别负责<b>补充做法、连接能力、打包扩展和设置触发逻辑</b>。</p>
   </section>
 
   <section class="map" id="map">
@@ -65,7 +70,7 @@
     <div class="sec-head">
       <p class="sec-label">拆开</p>
       <h2>拆开一台 AI</h2>
-      <p class="sec-desc">主干七层摞在一起，就是这台机器。拖动旋转，拉动滑块把它拆开——每层都标着它装了什么，点标签直接跳到那一章。</p>
+      <p class="sec-desc">主干七层摞在一起，就是这台机器。拖动旋转，拉动滑块把它拆开——每层都标着它装了什么，点标签查看作用，再进入对应章节。</p>
     </div>
     <div class="x3d-canvas" id="xCanvas">
       <div class="x3d-stage" id="xStage">
@@ -80,10 +85,11 @@
       </div>
       <div class="x3d-labels" id="xLabels"></div>
     </div>
+    <div id="layerDetail" class="layer-detail" aria-live="polite">选择图中的层级，查看它的作用与代表词。</div>
     <div class="x3d-bar">
       <button class="x3d-btn" id="xToggle" type="button">拆解</button>
       <input class="x3d-range" id="xRange" type="range" min="0" max="100" value="0" aria-label="拆解程度">
-      <span class="x3d-hint">拖动旋转 · 点标签跳到那一章</span>
+      <span class="x3d-hint">拖动旋转 · 点标签查看作用</span>
     </div>
   </section>
 
@@ -95,23 +101,24 @@
     <div class="sec-head">
       <p class="sec-label">装回去</p>
       <h2>一次请求的完整旅程</h2>
-      <p class="sec-desc">前面十层是零件，这里是装配图。你按下回车之后的三秒里，它们按这个顺序上场。</p>
+      <p class="sec-desc" id="journeyIntro">用一次带工具调用的请求，把零件串起来。以下流程和耗时均为示意。</p>
     </div>
     <div class="j-wrap">
       <ol class="j-list" id="jList"></ol>
       <aside class="j-side">
-        <p class="j-side-t">这三秒花在哪</p>
+        <p class="j-side-t">这个示例的耗时组成</p>
         <div class="j-bars" id="jBars"></div>
-        <p class="j-side-n">示意值。真实耗时要看模型、上下文长度和网络。</p>
+        <p class="j-side-n" id="journeyBarNote"></p>
       </aside>
     </div>
+    <div class="j-notes"><h3>不同请求怎么走</h3><ul id="journeyNotes"></ul></div>
   </section>
 
   <section class="myths" id="myths">
     <div class="sec-head">
       <p class="sec-label">排雷</p>
       <h2>十二个最常见的误解</h2>
-      <p class="sec-desc">这些话说出来很顺，但基本都是错的。点开看为什么。</p>
+      <p class="sec-desc">这些说法容易忽略条件和边界。点开看哪里需要修正。</p>
     </div>
     <div class="myth-list" id="mythList"></div>
   </section>
@@ -119,7 +126,7 @@
   <section class="index-sec" id="index">
     <div class="sec-head">
       <p class="sec-label">索引</p>
-      <h2><span data-total>179</span> 个词，随便查</h2>
+      <h2><span data-total>186</span> 个词，随便查</h2>
       <p class="sec-desc">输入中文或英文，点结果跳到它所在的位置。</p>
     </div>
     <div class="search-wrap">
@@ -136,11 +143,12 @@
   <div class="foot-inner">
     <p class="foot-mark">AI 零件大全</p>
     <p class="foot-note">配套 Markdown 全文：<a href="AI零件大全.md">AI零件大全.md</a></p>
-    <p class="foot-note dim"><span data-total>179</span> 个词 · 只为讲清楚，不为讲全</p>
+    <p class="foot-note dim"><span data-total>186</span> 个词 · 只为讲清楚，不为讲全</p>
   </div>
 </footer>
 
 <script src="data.js"></script>
 <script src="app.js"></script>
+<script src="reader.js"></script>
 </body>
 </html>

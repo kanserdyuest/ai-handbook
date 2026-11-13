@@ -2,6 +2,7 @@
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import { SCREENSHOTS, BROWSERS } from './cache-paths.mjs';
 
 const CHROME = process.env.CHROME_PATH || (
   process.platform === 'win32'
@@ -16,7 +17,7 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 const proc = spawn(CHROME, [
   '--headless=new', '--disable-gpu', '--hide-scrollbars', '--no-first-run', '--mute-audio',
-  `--remote-debugging-port=${PORT}`, `--user-data-dir=${path.resolve('.cdp-' + PORT)}`,
+  `--remote-debugging-port=${PORT}`, `--user-data-dir=${path.join(BROWSERS, 'cdp-' + PORT)}`,
   '--window-size=1440,900', 'about:blank'
 ], { stdio: 'ignore' });
 
@@ -32,7 +33,12 @@ async function main() {
   const ws = new WebSocket(t.webSocketDebuggerUrl);
   await new Promise((res, rej) => { ws.onopen = res; ws.onerror = rej; });
   let id = 0; const pending = new Map();
-  ws.onmessage = (e) => { const m = JSON.parse(e.data); if (m.id && pending.has(m.id)) { pending.get(m.id)(m); pending.delete(m.id); } };
+  const runtimeErrors = [];
+  ws.onmessage = (e) => {
+    const m = JSON.parse(e.data);
+    if (m.method === 'Runtime.exceptionThrown') runtimeErrors.push(m.params.exceptionDetails);
+    if (m.id && pending.has(m.id)) { pending.get(m.id)(m); pending.delete(m.id); }
+  };
   const send = (method, params = {}) => new Promise((res, rej) => {
     const i = ++id; pending.set(i, res); ws.send(JSON.stringify({ id: i, method, params }));
     setTimeout(() => { if (pending.has(i)) { pending.delete(i); rej(new Error('timeout ' + method)); } }, 60000);
@@ -44,7 +50,7 @@ async function main() {
   };
   const shot = async (file) => {
     const s = await send('Page.captureScreenshot', { format: 'png' });
-    fs.writeFileSync(file, Buffer.from(s.result.data, 'base64'));
+    fs.writeFileSync(path.join(SCREENSHOTS, path.basename(file)), Buffer.from(s.result.data, 'base64'));
   };
 
   await send('Page.enable');
@@ -53,9 +59,9 @@ async function main() {
   await send('Page.navigate', { url: URL_ });
   await sleep(2200);
 
-  const errs = await evalJs('window.__errs || null');
   const nTerms = await evalJs("document.querySelectorAll('.term').length");
-  ok('183 张卡片', nTerms === 183, 'got ' + nTerms);
+  const expectedTerms = await evalJs('window.AI_DATA.total');
+  ok('卡片数与数据一致', nTerms === expectedTerms, 'got ' + nTerms);
 
   const vis0 = await evalJs("[...document.querySelectorAll('.term')].filter(e=>e.offsetParent!==null).length");
   ok('核心词优先展示', vis0 > 90 && vis0 < 140, 'visible ' + vis0);
@@ -89,7 +95,7 @@ async function main() {
   await sleep(300);
   const cnt = await evalJs("document.querySelector('#searchCount').textContent");
   const chipN = await evalJs("document.querySelectorAll('.term-chip').length");
-  ok('搜索过滤', chipN > 0 && chipN < 183, cnt + ' / chips ' + chipN);
+  ok('搜索过滤', chipN > 0 && chipN < expectedTerms, cnt + ' / chips ' + chipN);
 
   // click a chip -> expands + scrolls
   await evalJs("document.querySelector('.term-chip').click()");
@@ -139,21 +145,90 @@ async function main() {
   const jFill = await evalJs("document.getElementById('jList').style.getPropertyValue('--fill')");
   ok('旅程 9 步且在走', jN === 9 && jOn === 1 && jFill !== '', 'steps ' + jN + ' on ' + jOn + ' fill ' + jFill);
   const jBar = await evalJs("document.querySelector('#jBars .tr i').style.width");
-  ok('耗时条已展开', jBar === '31%', jBar);
+  ok('耗时条已展开', jBar === '100%', jBar);
+  const journeyMatches = await evalJs(`(() => {
+    const j = window.AI_DATA.journey;
+    return document.getElementById('journeyIntro').textContent === j.intro &&
+      [...document.querySelectorAll('.j-step')].every((el, i) =>
+        el.querySelector('h3').textContent === j.steps[i][1] &&
+        el.querySelector('p').textContent === j.steps[i][2]) &&
+      document.getElementById('journeyBarNote').textContent === j.bar_note &&
+      [...document.querySelectorAll('#journeyNotes li')].map(el => el.textContent).join('|') === j.notes.join('|');
+  })()`);
+  ok('旅程内容与共用数据一致', journeyMatches === true);
   await shot('_v_journey.png');
+
+  await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+  await send('Page.navigate', { url: URL_ });
+  await sleep(1800);
+  await evalJs("document.documentElement.style.scrollBehavior='auto'; document.getElementById('journey').scrollIntoView({block:'start',behavior:'instant'})");
+  await sleep(500);
+  const mobileSize = await evalJs('({width: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth, viewport: window.visualViewport.width})');
+  ok('移动端无横向溢出', mobileSize.width === 390 && mobileSize.scroll <= 390 && Math.abs(mobileSize.viewport - 390) < 1, JSON.stringify(mobileSize));
+  await shot('_v_journey_mobile.png');
+  await evalJs("document.querySelector('.j-notes').scrollIntoView({block:'start',behavior:'instant'})");
+  await shot('_v_journey_notes_mobile.png');
+  await send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
 
   // hero
   await evalJs('window.scrollTo(0,0)');
   await sleep(1500);
   await shot('_v_hero.png');
 
+  await evalJs("document.getElementById('openSearch').click()");
+  await evalJs("document.getElementById('quickSearch').value='GraphRAG';document.getElementById('quickSearch').dispatchEvent(new Event('input'))");
+  ok('快捷搜索包含解释', await evalJs("document.querySelectorAll('.quick-result').length===1 && document.querySelector('.quick-result span').textContent.length>10"));
+  await shot('_v_search.png');
+  await evalJs("document.querySelector('.quick-result').click()");
+  await sleep(260);
+  ok('搜索打开词条并更新地址', await evalJs("location.hash.startsWith('#t-rag-') && document.querySelector('#ch-rag').classList.contains('open') && !document.getElementById('backToResults').hidden"));
+  await evalJs("document.getElementById('backToResults').click()");
+  ok('返回搜索保留关键词', await evalJs("document.getElementById('readerDialog').open && document.getElementById('quickSearch').value==='GraphRAG'"));
+  await evalJs("document.getElementById('closeReader').click();document.getElementById('openContents').click()");
+  ok('目录覆盖所有章节', await evalJs("document.querySelectorAll('#readerContents a').length===window.AI_DATA.layers.length"));
+  await evalJs("document.getElementById('closeReader').click()");
+  await evalJs("document.querySelector('#journey .demo-controls button:nth-child(2)').click()");
+  const pausedStep = await evalJs("document.querySelector('.j-step.on').dataset.i");
+  await sleep(1400);
+  ok('旅程手动前进后暂停', pausedStep === await evalJs("document.querySelector('.j-step.on').dataset.i"));
+  await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+  await send('Page.navigate', { url: URL_.split('#')[0] });
+  await sleep(1800);
+  await shot('_v_home_mobile.png');
+  await evalJs("document.getElementById('openContents').click()");
+  ok('手机目录可用', await evalJs("document.getElementById('readerDialog').open && document.getElementById('readerContents').offsetWidth>0"));
+  await shot('_v_contents_mobile.png');
+  await evalJs("document.getElementById('closeReader').click()");
+
+  await evalJs("document.querySelector('.x3d-lab[href]').click()");
+  ok('三维选层显示解释与入口', await evalJs("document.querySelector('#layerDetail p').textContent.length>10 && document.querySelector('#layerDetail a').getAttribute('href').startsWith('#ch-')"));
+  await evalJs("document.querySelector('#ch-agent .demo-controls button').click()");
+  const pausedDot = await evalJs("document.getElementById('agentDot').getAttribute('cx')");
+  await sleep(400);
+  ok('Agent 可暂停', pausedDot === await evalJs("document.getElementById('agentDot').getAttribute('cx')"));
+
+  await evalJs("document.getElementById('openSearch').click()");
+  await sleep(260);
+  await evalJs("document.getElementById('readerDialog').dispatchEvent(new Event('cancel',{cancelable:true}))");
+  ok('关闭过渡期间保持模态', await evalJs("document.getElementById('readerDialog').open"));
+  await sleep(260);
+  ok('关闭过渡结束释放模态', await evalJs("!document.getElementById('readerDialog').open && document.body.style.overflow!== 'hidden'"));
+  await evalJs("window.scrollTo({top:1600,behavior:'instant'})");
+  await sleep(100);
+  ok('滚动后出现返回顶部', await evalJs("document.getElementById('backToTop').classList.contains('is-visible')"));
+  await sleep(1800);
+  ok('返回顶部自动收起文字', await evalJs("!document.getElementById('backToTop').classList.contains('is-expanded')"));
+  await shot('_v_back_top_mobile.png');
+  await evalJs("document.getElementById('backToTop').click()");
+  await sleep(1500);
+  ok('一键回到顶部并隐藏', await evalJs("window.scrollY<5 && !document.getElementById('backToTop').classList.contains('is-visible')"));
+
   // console errors
-  const e2 = await evalJs('window.__errs || null');
-  ok('无 JS 运行时错误', !e2, JSON.stringify(e2));
+  ok('无 JS 运行时错误', runtimeErrors.length === 0, JSON.stringify(runtimeErrors));
 
   console.log(results.map(r => r.join('  |  ')).join('\n'));
   ws.close(); proc.kill();
-  process.exit(0);
+  process.exit(results.some(r => r[0] === 'FAIL') ? 1 : 0);
 }
 
 main().catch(e => { console.error(e); try { proc.kill(); } catch (_) { } process.exit(1); });

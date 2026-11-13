@@ -2,7 +2,7 @@
 
 <h1>AI 零件大全</h1>
 
-<p><strong>把 183 个 AI 名词，讲成一个完全不懂 AI 的人也能听懂的东西。</strong></p>
+<p><strong>把 186 个 AI 名词，讲成一个完全不懂 AI 的人也能听懂的东西。</strong></p>
 
 <p>模型是脑子 · 上下文是工作台 · 工具是手脚 · Agent 是干活的人 · Harness 是办公室</p>
 
@@ -25,7 +25,7 @@
 - **一份 Markdown 全文**（[`AI零件大全.md`](AI零件大全.md)）—— 平铺直叙，随便搜。
 - **一个单页网站**（[`index.html`](index.html)）—— 暗色、有动画、能上手玩。
 
-两者由**同一份数据**生成，不会出现“文档和网页说法不一致”。
+词条、误解和请求旅程使用**同一份内容源**生成；修改源文件后重新生成，网页和 Markdown 会同步更新。
 
 做这个的原因很简单：市面上的 AI 科普要么太浅（“AI 就是会学习的程序”），要么一上来就是论文词汇。真正卡住新人的，是**词与词之间的关系**——为什么有了大模型还需要 Agent，为什么有了 Agent 还需要 Harness。所以这里每个词只回答三件事：
 
@@ -50,7 +50,7 @@ python -m http.server 8000
 
 ## 里面有什么
 
-**183 个词，分 11 层**，从“大脑”一路讲到“货架”：
+**186 个词，分 11 层**，从“大脑”一路讲到“货架”：
 
 | 层 | 讲什么 | 代表词 |
 | --- | --- | --- |
@@ -68,15 +68,19 @@ python -m http.server 8000
 
 另有两块“把零件装回去”的内容：
 
-- **一次请求的完整旅程** —— 从你按下回车到看见第一个字，九步时间线，标出每一步用到了哪些零件。
+- **一次请求的完整旅程** —— 用一次带工具调用的请求展示九步时间线，区分普通问答、RAG 和工具循环，并说明耗时口径。
 - **十二个最常见的误解** —— “它会记得上次聊的”“上下文窗口越大越好”……逐条辟谣。
 
 ## 页面亮点
 
+- **随时查阅** —— 顶部常驻目录与搜索，按 `/` 查词、Esc 关闭；结果含解释和章节，支持返回结果与词条链接。
+- **阅读排版** —— 首屏层叠示意、紧凑开场、核心词强调；手机正文 16px、说明 14px。
+- **演示控制** —— 请求旅程支持暂停、下一步和重播，Agent 循环支持暂停与重播，3D 标签可查看层级说明。
+
 - **3D 拆解图** —— 七层摞成一台机器，拖动旋转、拉滑块拆开/装回，箭头标注实时跟着 3D 投影走。纯 CSS 3D + 手写投影，没有 three.js。
 - **6 个可交互演示** —— 分词切块、上下文窗口成本、检索打分与引用、Agent 循环、四种外挂对比、缓存前后对比。
 - **默认只展开核心词** —— 共 56 个核心词，其余收在“展开另外 N 个词”里；核心词太少的章节（≤3 个）默认全展开，免得空荡。
-- **183 词全文索引** —— 中英文都能搜，点结果自动展开所在章节并跳过去。
+- **186 词全文索引** —— 中英文都能搜，点结果自动展开所在章节并跳过去。
 - **会降级** —— 系统开了“减少动态效果”就关掉所有动画；移动端单列重排；没有 JS 时给出 Markdown 入口。
 
 ## 目录结构
@@ -86,14 +90,16 @@ python -m http.server 8000
 ├─ index.html            # 页面骨架
 ├─ styles.css            # 全部样式：暗色、动效、3D、响应式
 ├─ app.js                # 渲染 + 滚动动画 + 6 个演示 + 3D 拆解
-├─ data.js               # 183 个词的数据（自动生成，别手改）
+├─ reader.js             # 常驻目录、快捷搜索、词条定位和选层说明
+├─ data.js               # 186 个词的数据（自动生成，别手改）
 ├─ AI零件大全.md          # 纯文本全文（自动生成，别手改）
 ├─ assets/               # 预览截图
 └─ build/
    ├─ content_a.py       # 词条：模型层 / Token / 上下文 / 检索
    ├─ content_b.py       # 词条：Agent / Harness / 扩展 / 成本
    ├─ content_c.py       # 词条：数据评测 / 安全 / 产品 + 12 个误解
-   ├─ generate.py        # 由上面三份生成 .md 与 data.js
+   ├─ content_journey.py # 请求旅程、流程说明与示意耗时
+   ├─ generate.py        # 由内容源生成 .md 与 data.js
    ├─ check.mjs          # 无头浏览器交互自检（CDP）
    └─ shoot.mjs          # 整页截图脚本（CDP）
 ```
@@ -104,7 +110,7 @@ python -m http.server 8000
 
 ```bash
 python build/generate.py
-# terms: 183 core: 56 layers: 11 ...
+# terms: 186 core: 56 layers: 11 ...
 ```
 
 只用到 Python 标准库，不需要 pip 安装任何东西。
@@ -113,8 +119,8 @@ python build/generate.py
 
 ```python
 T("大语言模型", "LLM",
-  "专门练“下一个词该是什么”的超大模型",
-  "像一个读完了整个互联网、特别会接话的人",
+  "在大量语言数据上训练、能处理和生成文本的大规模模型",
+  "像读过大量材料、善于接话和整理信息的助手",
   "", True)   # 第 6 个参数 True = 核心词，默认展示
 ```
 
@@ -125,7 +131,7 @@ T("大语言模型", "LLM",
 - **零依赖**：没有框架、没有 CDN、没有构建步骤，断网可用。
 - **3D**：`perspective` + `preserve-3d` + `translate3d`，标签与箭头的屏幕坐标由手写投影函数实时计算，保证旋转时标注不错位。
 - **动画**：`IntersectionObserver` 触发入场，`requestAnimationFrame` 驱动循环演示，其余是 CSS transition。
-- **体积**：整站不到 130 KB 源码（未压缩，不含截图）。
+- **体积**：网页的 HTML、CSS、JS 源码合计约 150 KB（未压缩，不含 Markdown 和截图）。
 - **兼容**：开发与截图验证都在 Chrome 上完成。用的是 `clamp()`、CSS 3D、`IntersectionObserver`、`mask-image` 这类已经标准化多年的特性，Safari / Firefox 理论上一致，但没有逐一实测——遇到问题欢迎开 issue。
 
 调试参数：
@@ -156,6 +162,14 @@ node build/check.mjs "file:///<你的绝对路径>/index.html"
 - 词条里的数字（延迟、成本、缓存折扣）都是**示意值**，用来表达量级关系，不是任何厂商的真实报价。
 - 提到的产品名（vLLM、LangChain、Ollama 等）只作为“这一类东西”的例子，不构成推荐。
 - 内容优先保证“讲得通”，不追求学术上的完备定义。
+
+本轮概念纠错对照了以下资料（核对日期：2026-11-13；具体功能以对应实现和版本为准）：
+
+- [Hugging Face：生成参数](https://huggingface.co/docs/transformers/v4.56.0/en/main_classes/text_generation) — 区分 Top-p、Top-k 与温度。
+- [Claude：结构化输出](https://platform.claude.com/docs/en/build-with-claude/structured-outputs) — 结构约束及其适用边界。
+- [Microsoft：GraphRAG](https://microsoft.github.io/graphrag/) — 知识图谱与检索生成方法的关系。
+- [Claude Code：Hooks](https://code.claude.com/docs/en/hooks) — 宿主允许 Hook 补充上下文、控制执行等能力的实例。
+- [MCP：传输规范（2025-11-25）](https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/docs/specification/2025-11-25/basic/transports.mdx) — stdio、Streamable HTTP 与旧版 HTTP+SSE 的区别。
 
 ## 许可
 
