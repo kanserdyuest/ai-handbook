@@ -90,6 +90,15 @@ async function main() {
   const mythOpen = await evalJs("document.querySelector('.myth').open === true");
   ok('误解可展开', mythOpen === true, String(mythOpen));
 
+  await evalJs("document.querySelector('.myth summary').click()");
+  ok('误解收起时保留内容完成动画', await evalJs("document.querySelector('.myth').open && document.querySelector('.myth').getAnimations().length>0"));
+  await sleep(320);
+  ok('误解收起后关闭', await evalJs("!document.querySelector('.myth').open"));
+  await evalJs("document.querySelector('.myth summary').click();document.querySelector('.myth summary').click();document.querySelector('.myth summary').click()");
+  await sleep(320);
+  ok('误解快速切换状态正确', await evalJs("document.querySelector('.myth').open"));
+  ok('已移除返回搜索按钮', await evalJs("!document.getElementById('backToResults')"));
+
   // search
   await evalJs(`(()=>{const s=document.querySelector('#termSearch'); s.value='缓存'; s.dispatchEvent(new Event('input',{bubbles:true})); return 1})()`);
   await sleep(300);
@@ -181,9 +190,9 @@ async function main() {
   await shot('_v_search.png');
   await evalJs("document.querySelector('.quick-result').click()");
   await sleep(260);
-  ok('搜索打开词条并更新地址', await evalJs("location.hash.startsWith('#t-rag-') && document.querySelector('#ch-rag').classList.contains('open') && !document.getElementById('backToResults').hidden"));
-  await evalJs("document.getElementById('backToResults').click()");
-  ok('返回搜索保留关键词', await evalJs("document.getElementById('readerDialog').open && document.getElementById('quickSearch').value==='GraphRAG'"));
+  ok('搜索打开词条并更新地址', await evalJs("location.hash.startsWith('#t-rag-') && document.querySelector('#ch-rag').classList.contains('open')"));
+  await evalJs("document.getElementById('openSearch').click()");
+  ok('重新打开搜索保留关键词', await evalJs("document.getElementById('readerDialog').open && document.getElementById('quickSearch').value==='GraphRAG'"));
   await evalJs("document.getElementById('closeReader').click();document.getElementById('openContents').click()");
   ok('目录覆盖所有章节', await evalJs("document.querySelectorAll('#readerContents a').length===window.AI_DATA.layers.length"));
   await evalJs("document.getElementById('closeReader').click()");

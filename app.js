@@ -303,6 +303,30 @@
     var d = document.createElement('details');
     d.className = 'myth';
     d.innerHTML = '<summary>' + m.m + '<span class="plus">+</span></summary><p>' + m.a + '</p>';
+    var summary = d.querySelector('summary'), answer = d.querySelector('p');
+    var expanded = d.open, heightAnimation, answerAnimation;
+    summary.addEventListener('click', function (event) {
+      event.preventDefault();
+      expanded = !expanded;
+      var startHeight = d.getBoundingClientRect().height;
+      if (heightAnimation) heightAnimation.cancel();
+      if (answerAnimation) answerAnimation.cancel();
+      d.classList.toggle('is-closing', !expanded);
+      if (reduce) { d.open = expanded; return; }
+      // Keep details open until the closing animation finishes.
+      d.open = true;
+      var endHeight = expanded ? d.getBoundingClientRect().height : summary.getBoundingClientRect().height + 1;
+      heightAnimation = d.animate([{height:startHeight+'px'},{height:endHeight+'px'}], {
+        duration:260, easing:'cubic-bezier(.2,.7,.2,1)'
+      });
+      answerAnimation = answer.animate(expanded ? [{opacity:0},{opacity:1}] : [{opacity:1},{opacity:0}], {duration:220});
+      heightAnimation.onfinish = function () {
+        d.open = expanded;
+        d.classList.remove('is-closing');
+        heightAnimation = null;
+        answerAnimation = null;
+      };
+    });
     mythList.appendChild(d);
   });
 
