@@ -861,3 +861,7 @@ html{scrollbar-gutter:stable}
 
 .myth{overflow:hidden}
 .myth.is-closing .plus{transform:translateY(-50%);color:var(--ink-3)}
+
+.reader-bar .github-link{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:44px;height:44px;border:1px solid #36363c;border-radius:8px;color:#bdbdc7;transition:color .2s,border-color .2s,background .2s}
+.reader-bar .github-link:hover{color:var(--accent);border-color:#665437;background:#242017}
+@media(max-width:640px){.reader-bar .github-link{width:40px;height:40px}}
